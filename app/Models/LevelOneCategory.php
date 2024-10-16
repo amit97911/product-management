@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LevelOneCategory extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'level_one_categories';
 
     public function levelTwoCategories()
