@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -26,33 +25,52 @@ class Tradeling extends Model
             ]);
             if ($response->successful()) {
                 $data = $response->json();
-                $timestamp = Carbon::parse($data['expiresAt'])->toDateTimeString();
-                $apiKey = ApiKey::where('name', 'tradeling')->first();
-                if ($apiKey) {
-                    $apiKey->token = $data['token'];
-                    $apiKey->expires_at = $timestamp;
-                    $apiKey->save();
-                } else {
-                    $apiKey = new ApiKey;
-                    $apiKey->name = 'tradeling';
-                    $apiKey->token = $data['token'];
-                    $apiKey->expires_at = $timestamp;
-                    $apiKey->save();
-                }
 
-                return ['status' => 'success', 'message' => 'Token generated successfully'];
+                return ['status' => 'success', 'message' => 'Token generated successfully', 'data' => $data];
             } else {
                 $error = $response->body();
                 Log::critical('Tradeling api call did not return 200 ');
                 Log::critical($error);
 
-                return ['status' => 'error', 'message' => 'Token generated successfully'];
+                return ['status' => 'error', 'message' => 'Failed to generate API token', 'data' => null];
+            }
+        } catch (RequestException $e) {
+            Log::critical('Tradeling::generateAPIToken()  catch block ');
+            Log::critical($e->getMessage());
+
+            return ['status' => 'error', 'message' => 'Exception: Failed to generate API token'];
+        }
+    }
+
+    public function fetchCategories()
+    {
+        try {
+            $headers = [
+                'accept' => 'application/json, text/plain, */*',
+                'x-store-id' => 'tcom-ae',
+                'Content-Type' => 'application/json',
+            ];
+            // $url = config('tradeling.tradeling_test_url').'/api/module-account/v3/auth/api-key';
+            // if (config('app.env') == 'production') {
+            $url = config('tradeling.tradeling_prod_url').'/api/module-catalog-search/v3-get-category-tree?maxLevel=3';
+            // }
+            $response = Http::withHeaders($headers)->get($url);
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return ['status' => 'success', 'message' => 'Category fetch successful', 'data' => $data];
+            } else {
+                $error = $response->body();
+                Log::critical('Tradeling api call did not return 200 ');
+                Log::critical($error);
+
+                return ['status' => 'error', 'message' => 'Category fetch failed', 'data' => null];
             }
         } catch (RequestException $e) {
             Log::critical('Tradeling api call catch block ');
             Log::critical($e->getMessage());
 
-            return ['error' => 'Failed to generate API token'];
+            return ['status' => 'error', 'message' => 'Exception: Category fetch failed'];
         }
     }
 }
