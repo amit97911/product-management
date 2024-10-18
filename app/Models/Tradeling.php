@@ -50,7 +50,7 @@ class Tradeling extends Model
                 'x-store-id' => 'tcom-ae',
                 'Content-Type' => 'application/json',
             ];
-            // $url = config('tradeling.tradeling_test_url').'/api/module-account/v3/auth/api-key';
+            // $url = config('tradeling.tradeling_test_url').'/api/module-catalog-search/v3-get-category-tree?maxLevel=3';
             // if (config('app.env') == 'production') {
             $url = config('tradeling.tradeling_prod_url').'/api/module-catalog-search/v3-get-category-tree?maxLevel=3';
             // }
@@ -72,5 +72,82 @@ class Tradeling extends Model
 
             return ['status' => 'error', 'message' => 'Exception: Category fetch failed'];
         }
+    }
+
+    public function createOrder($product_data = [])
+    {
+        if (empty($product_data)) {
+            return ['status' => 'error', 'message' => 'Product data is required'];
+        }
+        $jwt_token = ApiKey::select('token')->where('name', 'tradeling')->first();
+        $headers = [
+            'x-jwt-token' => $jwt_token->token,
+            'Content-Type' => 'application/json',
+        ];
+        $body = [
+            [
+                'dimensions' => $product_data['dimensions'],
+                'packaging' => $product_data['packaging'],
+                'stockQty' => $product_data['stockQty'],
+                'unit' => $product_data['unit'],
+                'sku' => $product_data['sku'],
+                'mediaUrls' => $product_data['mediaUrls'],
+                'keywords' => $product_data['keywords'],
+                'keyFeatures' => $product_data['keyFeatures'],
+                'attributes' => [
+                    'dangerousGoods' => 'No',
+                    'brand' => $product_data['brand'],
+                    'testingRegression' => 'test',
+                ],
+                'name' => $product_data['name'],
+                'selectedCategoryMoq' => 1,
+                'categoryId' => $product_data['categoryId'],
+                'offers' => [
+                    [
+                        'delivery' => [
+                            'leadTimeValue' => 10,
+                            'leadTimeUnit' => 'days',
+                        ],
+                        'market' => [
+                            'label' => 'UAE Market (GULF)',
+                            'code' => 'AE',
+                            'currency' => 'AED',
+                            'tiers' => [
+                                [
+                                    'minQty' => 1,
+                                    'retailPrice' => null,
+                                    'tierCode' => 'TIERS-1',
+                                    'price' => $product_data['price'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                'longDescription' => new \stdClass,
+                'transportationMode' => 'regular',
+                'additionalAttributes' => [new \stdClass],
+                'isBuyNow' => true,
+                'isInStock' => true,
+                'isReadyToShip' => true,
+                'shortDescription' => $product_data['shortDescription'],
+                'offerPrivateLabelOption' => 'no',
+                'tags' => [],
+                'type' => 'simple',
+                'hasPrivateLabel' => false,
+            ],
+        ];
+
+        // dd($body);
+        // Send the request
+        // $url = config('tradeling.tradeling_test_url').'/api/module-catalog-pim/v3/products';
+        // if (config('app.env') == 'production') {
+        $url = config('tradeling.tradeling_prod_url').'/api/module-catalog-pim/v3/products';
+        // }
+        $response = Http::withHeaders($headers)->post($url, $body);
+        // dd($response);
+        // Handle the response
+        $json = $response->json();
+        $body = $response->body();
+        dd($json, $body, $body, $response);
     }
 }
